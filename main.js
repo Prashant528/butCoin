@@ -7,11 +7,21 @@ class Block {
         this.timestamp = timestamp;
         this.data = data;
         this.previousHash = previousHash;
+        this.nonce = 0;
         this.hash = this.calculateHash();
     }
 
     calculateHash() {
-        return SHA256(this.index + this.previousHash + this.timestamp + JSON.stringify(this.data)).toString();
+        return SHA256(this.index + this.previousHash + this.timestamp + JSON.stringify(this.data) + this.nonce).toString();
+    }
+
+    //method for implementing proof-of-work
+    mineBlock(difficulty) {
+        while (this.hash.substring(0, difficulty) != Array(difficulty + 1).join("0")) {
+            this.nonce++;
+            this.hash = this.calculateHash();
+        }
+        console.log("Block mined with hash: " + this.hash);
     }
 
 }
@@ -20,6 +30,7 @@ class Block {
 class BlockChain {
     constructor() {
         this.chain = [this.createGenesisBlock()];
+        this.difficulty = 4;
     }
 
     createGenesisBlock() {
@@ -32,20 +43,20 @@ class BlockChain {
 
     addBlock(newBlock) {
         newBlock.previousHash = this.getLatestBlock().hash;
-        newBlock.hash = newBlock.calculateHash();
+        newBlock.mineBlock(this.difficulty);
         this.chain.push(newBlock);
     }
 
-    isChainValid(){
-        for(let i=1; i<this.chain.length; i++){
+    isChainValid() {
+        for (let i = 1; i < this.chain.length; i++) {
             const currentBlock = this.chain[i];
-            const prevBlock = this.chain[i-1];
+            const prevBlock = this.chain[i - 1];
             //check if the current block's hash is as it should be.
-            if(currentBlock.hash != currentBlock.calculateHash()){
+            if (currentBlock.hash != currentBlock.calculateHash()) {
                 return false;
             }
             //check if the current block has the correct hash of the previous block.
-            if(currentBlock.previousHash != prevBlock.hash){
+            if (currentBlock.previousHash != prevBlock.hash) {
                 return false;
             }
         }
@@ -57,17 +68,13 @@ class BlockChain {
 //creating a new blockchain.
 let buttCoin = new BlockChain();
 
-buttCoin.addBlock(new Block(1, "06/03/2021", {amount:4}));
-buttCoin.addBlock(new Block(2, "06/03/2021", {amount:6}));
+buttCoin.addBlock(new Block(1, "06/03/2021", { amount: 4 }));
+buttCoin.addBlock(new Block(2, "06/03/2021", { amount: 6 }));
 console.log(JSON.stringify(buttCoin, null, 4));
 console.log("Is buttCoin valid? : " + buttCoin.isChainValid());
 console.log('----------------------------------------------------------')
 //tampering with the blockchain data (hash won't match).
-buttCoin.chain[1].data = {amount:50}
+buttCoin.chain[1].data = { amount: 50 }
 console.log(JSON.stringify(buttCoin, null, 4));
 console.log("Is buttCoin valid? : " + buttCoin.isChainValid());
 console.log('----------------------------------------------------------')
-//tampering with the hash also.
-buttCoin.chain[1].hash = buttCoin.chain[1].calculateHash();
-console.log(JSON.stringify(buttCoin, null, 4));
-console.log("Is buttCoin valid? : " + buttCoin.isChainValid());
